@@ -1,0 +1,190 @@
+# LibriSpeech-100 RNN Speech Recognition Configuration
+
+# Dataset Configuration
+dataset:
+  name: "LibriSpeech-100"
+  dataset_url: "train-clean-100"  # LibriSpeech subset
+  sample_rate: 16000
+  max_audio_duration: 15  # seconds (LibriSpeech has longer utterances)
+  min_audio_duration: 1.0  # seconds
+  data_dir: "./data/librispeech"
+  cache_dir: "./data/cache"
+  num_workers: 4
+  download: true  # Auto-download if not present
+
+# Audio Preprocessing
+audio:
+  feature_type: "mfcc"  # "mfcc" or "mel_spectrogram"
+  # MFCC settings
+  n_mfcc: 40
+  n_fft: 400
+  hop_length: 160
+  win_length: 400
+  # Mel spectrogram settings
+  n_mels: 80
+  # Normalization
+  normalize: true
+  normalize_type: "per_feature"  # "per_feature" or "global"
+
+# Data Augmentation
+augmentation:
+  train:
+    time_stretch: true
+    time_stretch_rate: [0.9, 1.1]
+    pitch_shift: false  # Disable for cleaner LibriSpeech
+    pitch_shift_steps: [-2, 2]
+    add_noise: true
+    noise_factor: 0.003
+    spec_augment: true
+    freq_mask_param: 15
+    time_mask_param: 35
+  test:
+    apply: false
+
+# Text Preprocessing & Tokenization
+tokenizer:
+  type: "character"  # "character" or "word"
+  lowercase: true
+  vocab_size: null  # null for character-level (auto-determined)
+  special_tokens: ["<PAD>", "<SOS>", "<EOS>", "<UNK>"]
+  save_path: "./data/tokenizer.json"
+  # LibriSpeech is English only
+  language: "en"
+
+# Data Loading
+data_loader:
+  batch_size: 16  # Smaller batch for 100h dataset
+  train_split: 0.9  # Use official LibriSpeech splits
+  val_split: 0.05
+  test_split: 0.05
+  shuffle_train: true
+  pin_memory: true
+  drop_last: true
+
+# Model Configurations
+models:
+  # Classical RNN (LSTM-based Encoder-Decoder)
+  classical_rnn:
+    # Encoder
+    encoder_type: "lstm"  # "lstm" or "gru"
+    encoder_input_size: 40  # Should match n_mfcc
+    encoder_hidden_size: 256
+    encoder_num_layers: 3
+    encoder_bidirectional: true
+    encoder_dropout: 0.3
+
+    # Decoder
+    decoder_hidden_size: 512  # 2x encoder_hidden if bidirectional
+    decoder_num_layers: 2
+    decoder_dropout: 0.3
+
+    # Embeddings
+    embedding_dim: 256
+
+    # Other
+    use_attention: false
+
+  # RNN with Attention
+  attention_rnn:
+    # Encoder (same as classical)
+    encoder_type: "lstm"
+    encoder_input_size: 40
+    encoder_hidden_size: 256
+    encoder_num_layers: 3
+    encoder_bidirectional: true
+    encoder_dropout: 0.3
+
+    # Decoder
+    decoder_hidden_size: 512
+    decoder_num_layers: 2
+    decoder_dropout: 0.3
+
+    # Embeddings
+    embedding_dim: 256
+
+    # Attention
+    use_attention: true
+    attention_type: "bahdanau"  # "bahdanau" or "luong"
+    attention_hidden_size: 256
+
+# Training Configuration
+training:
+  epochs: 30  # Fewer epochs for 100h dataset
+  learning_rate: 0.0003  # Lower LR for LibriSpeech
+  weight_decay: 0.00001
+  optimizer: "adam"  # "adam", "adamw", or "sgd"
+
+  # Learning rate scheduling
+  scheduler: "reduce_on_plateau"  # "cosine", "step", "reduce_on_plateau", or "none"
+  scheduler_params:
+    mode: "min"
+    factor: 0.5
+    patience: 3
+    min_lr: 0.00001
+
+  # Gradient clipping (important for RNNs)
+  gradient_clip: 5.0
+
+  # Teacher forcing
+  teacher_forcing_ratio: 0.5
+  teacher_forcing_decay: 0.95  # Faster decay for cleaner data
+
+  # Early stopping
+  early_stopping:
+    patience: 7
+    metric: "val_wer"  # Minimize WER
+    min_delta: 0.01
+    mode: "min"
+
+  # Mixed precision training
+  use_amp: false  # Automatic Mixed Precision
+
+  # Checkpointing
+  save_every_n_epochs: 5
+  save_best_only: true
+
+# Decoding Configuration
+decoding:
+  method: "greedy"  # "greedy" or "beam_search"
+  beam_size: 5  # For beam search
+  max_length: 250  # LibriSpeech can be longer
+  length_penalty: 1.0  # For beam search
+
+# Evaluation
+evaluation:
+  metrics: ["wer", "cer"]
+  compute_attention_weights: true  # For attention model
+  save_predictions: true
+  num_examples_to_log: 20
+
+# Export Configuration
+export:
+  onnx:
+    opset_version: 11
+    dynamic_axes:
+      audio_features: {0: "batch_size", 1: "time"}
+      audio_lengths: {0: "batch_size"}
+  torchscript:
+    method: "trace"  # or "script"
+
+# API Configuration
+api:
+  host: "0.0.0.0"
+  port: 8001  # Different port from afrinic
+  max_audio_size_mb: 15
+  allowed_formats: [".wav", ".mp3", ".flac", ".ogg"]
+  cors_origins: ["http://localhost:3000", "http://localhost:3001"]
+
+# Logging and Visualization
+logging:
+  level: "INFO"
+  log_dir: "./logs"
+  tensorboard_dir: "./runs"
+  save_plots: true
+  plot_dir: "./plots"
+
+# Reproducibility
+seed: 42
+
+# Device
+device: "cuda"  # "cuda" or "cpu", will auto-detect if cuda available
