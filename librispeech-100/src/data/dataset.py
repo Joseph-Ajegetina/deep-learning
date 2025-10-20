@@ -309,8 +309,7 @@ class LibriSpeechDataModule:
 
         # Create tokenizer
         tokenizer = Tokenizer(
-            tokenizer_type=self.config['tokenizer']['type'],
-            special_tokens=self.config['tokenizer']['special_tokens'],
+            tokenization_type=self.config['tokenizer']['type'],
             lowercase=self.config['tokenizer']['lowercase']
         )
 

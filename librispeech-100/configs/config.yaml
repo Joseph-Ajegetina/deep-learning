@@ -67,7 +67,6 @@ models:
   classical_rnn:
     # Encoder
     encoder_type: "lstm"  # "lstm" or "gru"
-    encoder_input_size: 40  # Should match n_mfcc
     encoder_hidden_size: 256
     encoder_num_layers: 3
     encoder_bidirectional: true
@@ -81,14 +80,10 @@ models:
     # Embeddings
     embedding_dim: 256
 
-    # Other
-    use_attention: false
-
   # RNN with Attention
   attention_rnn:
     # Encoder (same as classical)
     encoder_type: "lstm"
-    encoder_input_size: 40
     encoder_hidden_size: 256
     encoder_num_layers: 3
     encoder_bidirectional: true
@@ -103,7 +98,6 @@ models:
     embedding_dim: 256
 
     # Attention
-    use_attention: true
     attention_type: "bahdanau"  # "bahdanau" or "luong"
     attention_hidden_size: 256
 

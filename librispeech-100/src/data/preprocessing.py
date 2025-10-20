@@ -273,6 +273,23 @@ class AudioPreprocessor:
         features = self.normalize_features(features)
         return features
 
+    def __call__(self, waveform: torch.Tensor, sample_rate: int) -> torch.Tensor:
+        """
+        Make the preprocessor callable.
+
+        Args:
+            waveform: Audio waveform (1, num_samples) or (num_samples,)
+            sample_rate: Sample rate (unused, kept for compatibility)
+
+        Returns:
+            Preprocessed features (num_features, time_steps)
+        """
+        # Ensure waveform has channel dimension
+        if waveform.dim() == 1:
+            waveform = waveform.unsqueeze(0)
+
+        return self.process_waveform(waveform)
+
     def get_feature_dim(self) -> int:
         """
         Get the feature dimension.
@@ -400,3 +417,20 @@ class AudioAugmentor:
             pass
 
         return waveform
+
+    def __call__(self, waveform: torch.Tensor, sample_rate: int) -> torch.Tensor:
+        """
+        Make the augmentor callable.
+
+        Args:
+            waveform: Input waveform (1, num_samples) or (num_samples,)
+            sample_rate: Sample rate (unused, kept for compatibility)
+
+        Returns:
+            Augmented waveform
+        """
+        # Ensure waveform has channel dimension
+        if waveform.dim() == 1:
+            waveform = waveform.unsqueeze(0)
+
+        return self.augment_waveform(waveform)
